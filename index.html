@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Axie Gene Finder Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a; --panel: #111827; --border: #1e3a5f;
+  --accent: #00d4ff; --accent2: #ff6b35; --accent3: #7fff00;
+  --text: #c9d6df; --dim: #4a6070; --card: #0d1b2a;
+  --success: #00ff9f; --error: #ff4444;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono', monospace; min-height: 100vh; }
+header { text-align: center; padding: 2rem 1rem 1rem; border-bottom: 1px solid var(--border); }
+header h1 { font-family: 'Press Start 2P', monospace; font-size: clamp(0.7rem, 2.5vw, 1.2rem); color: var(--accent); text-shadow: 0 0 20px rgba(0,212,255,0.5); margin-bottom: 0.5rem; }
+header p { color: var(--dim); font-size: 0.75rem; }
+.container { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem; }
+.tabs { display: flex; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+.tab { font-family: 'Press Start 2P', monospace; font-size: 0.45rem; padding: 0.6rem 1rem; cursor: pointer; color: var(--dim); border-bottom: 2px solid transparent; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.section-title { font-family: 'Press Start 2P', monospace; font-size: 0.5rem; color: var(--accent2); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, var(--border), transparent); }
+.note { font-size: 0.65rem; color: var(--dim); background: rgba(0,0,0,0.3); border-left: 2px solid var(--accent2); padding: 0.5rem 0.75rem; border-radius: 0 4px 4px 0; margin-bottom: 1.5rem; line-height: 1.7; }
+.row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+.row label { font-size: 0.7rem; color: var(--dim); white-space: nowrap; }
+.filters-grid { display: grid; gap: 1rem; margin-bottom: 1.5rem; }
+.filter-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
+.filter-card.active { border-color: var(--accent); }
+.filter-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+.toggle-box { width: 18px; height: 18px; border: 2px solid var(--accent); border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.toggle-box.on { background: var(--accent); }
+.toggle-box.on::after { content: 'x'; font-size: 10px; color: #000; font-weight: bold; }
+.filter-label { font-family: 'Press Start 2P', monospace; font-size: 0.5rem; color: var(--accent); }
+.part-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; }
+.part-row label { font-size: 0.7rem; color: var(--dim); white-space: nowrap; }
+.gene-row { display: grid; grid-template-columns: 55px 1fr; gap: 0.5rem; align-items: center; margin-top: 0.4rem; }
+.gtag { font-family: 'Press Start 2P', monospace; font-size: 0.4rem; padding: 4px 5px; border-radius: 4px; text-align: center; }
+.gtag-d  { background: rgba(0,212,255,0.15); color: var(--accent);  border: 1px solid var(--accent); }
+.gtag-r1 { background: rgba(255,107,53,0.15); color: var(--accent2); border: 1px solid var(--accent2); }
+.gtag-r2 { background: rgba(127,255,0,0.15);  color: var(--accent3); border: 1px solid var(--accent3); }
+select, input[type=text], input[type=number] { width: 100%; background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 6px 8px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; outline: none; }
+select:focus, input:focus { border-color: var(--accent); }
+.controls { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center; }
+.btn { font-family: 'Press Start 2P', monospace; font-size: 0.5rem; padding: 0.75rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; }
+.btn-primary { background: var(--accent); color: #000; }
+.btn-secondary { background: transparent; color: var(--dim); border: 1px solid var(--border); cursor: pointer; }
+.btn-warn { background: var(--accent2); color: #000; }
+.btn-danger { background: var(--error); color: #fff; }
+.limit-row { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; font-size: 0.7rem; color: var(--dim); }
+.limit-row select { width: auto; }
+.status-box { font-size: 0.75rem; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; display: none; }
+.status-box.info    { background: rgba(0,212,255,0.1); border: 1px solid var(--accent);  color: var(--accent);  display: block; }
+.status-box.success { background: rgba(0,255,159,0.1); border: 1px solid var(--success); color: var(--success); display: block; }
+.status-box.error   { background: rgba(255,68,68,0.1); border: 1px solid var(--error);   color: var(--error);   display: block; }
+.progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 1rem; overflow: hidden; display: none; }
+.progress-bar.active { display: block; }
+.progress-fill { height: 100%; background: linear-gradient(to right, var(--accent), var(--accent2)); width: 0%; transition: width 0.3s; }
+#results { display: grid; gap: 0.75rem; }
+.axie-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: grid; grid-template-columns: 72px 1fr auto; gap: 1rem; align-items: center; }
+.axie-img { width: 72px; height: 72px; border-radius: 6px; background: var(--panel); object-fit: contain; }
+.axie-id { font-family: 'Press Start 2P', monospace; font-size: 0.5rem; color: var(--accent); margin-bottom: 0.4rem; }
+.axie-cls { font-size: 0.65rem; color: var(--dim); margin-bottom: 0.5rem; }
+.pills { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.pill { font-size: 0.6rem; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+.pill-part { background: rgba(74,96,112,0.3); color: #8899aa; font-family: 'Press Start 2P', monospace; font-size: 0.38rem; }
+.pill-d  { background: rgba(0,212,255,0.15);  color: var(--accent);  border: 1px solid rgba(0,212,255,0.3); }
+.pill-r1 { background: rgba(255,107,53,0.15); color: var(--accent2); border: 1px solid rgba(255,107,53,0.3); }
+.pill-r2 { background: rgba(127,255,0,0.15);  color: var(--accent3); border: 1px solid rgba(127,255,0,0.3); }
+.axie-right { text-align: right; }
+.axie-price { font-family: 'Press Start 2P', monospace; font-size: 0.48rem; color: var(--success); margin-bottom: 0.3rem; }
+.usd-price { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--dim); margin-bottom: 0.75rem; letter-spacing: 0.5px; }
+.btn-view { display: inline-block; font-family: 'Press Start 2P', monospace; font-size: 0.38rem; padding: 6px 10px; background: rgba(0,212,255,0.05); border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; text-decoration: none; transition: background 0.2s; }
+.btn-view:hover { background: rgba(0,212,255,0.2); }
+.verify-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 1rem; margin-top: 1rem; }
+.verify-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; }
+.verify-card h4 { font-family: 'Press Start 2P', monospace; font-size: 0.45rem; color: var(--accent2); margin-bottom: 0.5rem; }
+.gene-line { display: grid; grid-template-columns: 40px 1fr; gap: 0.4rem; align-items: center; margin-top: 0.3rem; font-size: 0.65rem; }
+.raw-code { color: var(--dim); font-size: 0.6rem; }
+
+/* Estilos de la Calculadora de Cría */
+.calc-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+.parent-box { background: rgba(13,27,42,0.6); border: 1px dashed var(--border); padding: 1.5rem; border-radius: 8px; text-align: center; }
+.parent-box h3 { font-family: 'Press Start 2P', monospace; font-size: 0.45rem; color: var(--accent); margin-bottom: 1rem; }
+.parent-box input { text-align: center; font-size: 1rem; font-weight: bold; width: 60%; }
+.calc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.calc-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
+.calc-card h4 { font-family: 'Press Start 2P', monospace; font-size: 0.5rem; color: var(--accent2); margin-bottom: 0.8rem; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+.trait-row { margin-bottom: 0.6rem; }
+.trait-header { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 0.2rem; }
+.trait-name { color: var(--text); }
+.trait-pct { font-family: 'Share Tech Mono', monospace; color: var(--success); }
+.trait-bar-bg { background: var(--panel); height: 6px; border-radius: 3px; overflow: hidden; width: 100%; border: 1px solid var(--border); }
+.trait-bar-fill { background: linear-gradient(to right, var(--accent), var(--accent2)); height: 100%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AXIE GENE FINDER PRO</h1>
+  <p>Motor de Búsqueda Profunda & Base de Datos Purificada</p>
+</header>
+<div class="container">
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('search')">BUSCAR GENES</div>
+    <div class="tab" onclick="switchTab('calc')">CALCULADORA BREED</div>
+    <div class="tab" onclick="switchTab('verify')">VERIFICADOR</div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- TAB: BÚSQUEDA (EL ESCÁNER)                 -->
+  <!-- ========================================== -->
+  <div class="tab-panel active" id="tab-search">
+    <div class="note">
+      Los menús han sido rediseñados. Utiliza "Búsqueda Profunda" para escanear en lotes. Delay ajustado a 1000ms para evitar bloqueos del servidor.
+    </div>
+    
+    <div class="section-title">Filtros Nativos (Saltar Floor Price)</div>
+    <div class="row" style="background:var(--card); padding:1rem; border-radius:8px; border:1px solid var(--border);">
+      <div style="flex:1; min-width:140px;">
+        <label>Clase:</label>
+        <select id="nativeClass">
+          <option value="">-- Todas --</option>
+          <option value="Aquatic">Acuático</option>
+          <option value="Beast">Bestia</option>
+          <option value="Bird">Pájaro</option>
+          <option value="Bug">Bicho</option>
+          <option value="Dawn">Dawn</option>
+          <option value="Dusk">Dusk</option>
+          <option value="Mech">Mech</option>
+          <option value="Plant">Planta</option>
+          <option value="Reptile">Reptil</option>
+        </select>
+      </div>
+      <div style="flex:1; min-width:140px;">
+        <label>Breed Count:</label>
+        <select id="nativeBreed">
+          <option value="">-- Todos --</option>
+          <option value="0">0/7 (Virgen)</option>
+          <option value="1">1/7</option>
+          <option value="2">2/7</option>
+          <option value="3">3/7</option>
+          <option value="4">4/7</option>
+        </select>
+      </div>
+      <div style="flex:1; min-width:140px;">
+        <label>Orden (Tenaza):</label>
+        <select id="nativeSort">
+          <option value="PriceAsc">Más Baratos Primero</option>
+          <option value="PriceDesc">Más Caros Primero</option>
+        </select>
+      </div>
+      <div style="flex:1; min-width:140px;">
+        <label>Ignorar primeros:</label>
+        <input type="number" id="nativeOffset" value="0" min="0" max="9900" step="100" placeholder="Ej: 3000">
+      </div>
+    </div>
+
+    <div class="section-title">Proxy Worker</div>
+    <div class="row">
+      <label>URL:</label>
+      <input type="text" id="proxyUrl" value="https://axie-proxy.loveandpainsports.workers.dev/" spellcheck="false">
+    </div>
+    
+    <div class="section-title">Filtros de genes ocultos</div>
+    <div class="filters-grid" id="filtersGrid"></div>
+    
+    <div class="controls">
+      <button class="btn btn-primary" id="searchBtn" onclick="runSearch(false)">BÚSQUEDA RÁPIDA</button>
+      <button class="btn btn-warn" id="deepSearchBtn" onclick="runSearch(true)">BÚSQUEDA PROFUNDA</button>
+      <button class="btn btn-danger" id="stopBtn" onclick="stopSearch()" style="display:none;">DETENER</button>
+      <button class="btn btn-secondary" onclick="clearAll()">LIMPIAR</button>
+      <div class="limit-row">
+        <span>Límite rápido:</span>
+        <select id="limitSel">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="200">200</option>
+          <option value="500">500</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="status-box" id="status"></div>
+    <div class="progress-bar" id="progBar"><div class="progress-fill" id="progFill"></div></div>
+    
+    <div id="resultsSection" style="display:none">
+      <div class="section-title">Resultados</div>
+      <div class="results-count" id="resCount"></div>
+      <div id="results"></div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- TAB: CALCULADORA DE CRÍA (NUEVA)           -->
+  <!-- ========================================== -->
+  <div class="tab-panel" id="tab-calc">
+    <div class="note">
+      Ingresa el ID de los dos padres. El algoritmo calculará las probabilidades matemáticas exactas de que la cría herede cada gen.
+    </div>
+
+    <div class="calc-inputs">
+      <div class="parent-box">
+        <h3>PADRE 1 (ID)</h3>
+        <input type="text" id="calcId1" placeholder="Ej: 392401" autocomplete="off">
+      </div>
+      <div class="parent-box">
+        <h3>PADRE 2 (ID)</h3>
+        <input type="text" id="calcId2" placeholder="Ej: 9357598" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="controls" style="justify-content: center; margin-bottom: 2rem;">
+      <button class="btn btn-warn" onclick="runCalculator()">SIMULAR GENÉTICA</button>
+    </div>
+
+    <div class="status-box" id="calcStatus"></div>
+    <div class="calc-grid" id="calcResults"></div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- TAB: VERIFICADOR MANUAL                    -->
+  <!-- ========================================== -->
+  <div class="tab-panel" id="tab-verify">
+    <div class="note">
+      Ingresa el ID de cualquier Axie para auditar sus posiciones de bits crudas.
+    </div>
+    <div class="section-title">Axie a verificar</div>
+    <div class="row">
+      <label>ID del Axie:</label>
+      <input type="text" id="verifyId" placeholder="ej: 392401" autocomplete="off">
+    </div>
+    <div class="controls">
+      <button class="btn btn-warn" onclick="runVerify()">DECODIFICAR</button>
+    </div>
+    <div class="status-box" id="verifyStatus"></div>
+    <div id="verifyResults"></div>
+  </div>
+
+</div>
+
+<script>
+// ==========================================
+// 1. BASE DE DATOS Y MOTOR DE DECODIFICACIÓN
+// ==========================================
+var CLS_MAP = {0:'Beast', 1:'Bug', 2:'Bird', 3:'Plant', 4:'Aquatic', 5:'Reptile', 6:'Dusk', 7:'Mech', 8:'Dawn'};
+
+var PARTS_DB = {
+  eyes: {
+    0: {2:"Zeal", 4:"Little Peas", 8:"Puppy", 10:"Chubby"},
+    1: {2:"Bookworm", 4:"Neo", 8:"Nerdy", 10:"Kotaro?"},
+    2: {2:"Mavis", 4:"Lucas", 8:"Little Owl", 10:"Robin"},
+    3: {2:"Papi", 4:"Confused", 6:"Blossom", 8:"Cucumber Slice", 10:"Blossom"},
+    4: {2:"Sleepless", 4:"Clear", 8:"Gero", 10:"Telescope"},
+    5: {2:"Gecko", 4:"Tricky", 8:"Scar", 10:"Topaz", 12:"Crimson Tear"}
+  },
+  mouth: {
+    0: {2:"Nut Cracker", 4:"Goda", 8:"Axie Kiss", 10:"Confident"},
+    1: {2:"Mosquito", 4:"Pincer", 8:"Cute Bunny", 10:"Square Teeth"},
+    2: {2:"Doubletalk", 4:"Peace Maker", 8:"Hungry Bird", 10:"Little Owl"},
+    3: {2:"Serious", 4:"Zigzag", 8:"Herbivore", 10:"Silence Whisper"},
+    4: {2:"Lam", 4:"Catfish", 8:"Risky Fish", 10:"Piranha"},
+    5: {2:"Toothless Bite", 4:"Kotaro", 8:"Razor Bite", 10:"Tiny Turtle"}
+  },
+  ears: {
+    0: {2:"Nyan", 4:"Nut Cracker", 6:"Innocent Lamb", 8:"Zen", 10:"Puppy", 12:"Belieber"},
+    1: {2:"Larva", 4:"Beetle Spike", 6:"Ear Breathing", 8:"Leaf Bug", 10:"Tassels", 12:"Earwing"},
+    2: {2:"Pink Cheek", 4:"Early Bird", 6:"Owl", 8:"Peace Maker", 10:"Curly", 12:"Risky Bird"},
+    3: {2:"Leafy", 4:"Clover", 6:"Rosa", 8:"Sakura", 10:"Hollow", 12:"Lotus"},
+    4: {2:"Nimo", 4:"Tiny Fan", 6:"Bubblemaker", 8:"Inkling", 10:"Gill", 12:"Seaslug"},
+    5: {2:"Pogona", 4:"Friezard", 6:"Curved Spine", 8:"Small Frill", 10:"Swirl", 12:"Sidebarb"}
+  },
+  horn: {
+    0: {2:"Little Branch", 4:"Imp", 6:"Merry", 8:"Pocky", 10:"Dual Blade", 12:"Arco"},
+    1: {2:"Lagging", 4:"Antenna", 6:"Caterpillar", 8:"Pliers", 10:"Parasite", 12:"Leaf Bug"},
+    2: {2:"Eggshell", 4:"Cuckoo", 6:"Trump", 8:"Kestrel", 10:"Wing Horn", 12:"Feather Spear"},
+    3: {2:"Bamboo Shoot", 4:"Beech", 6:"Rose Bud", 8:"Strawberry Shortcake", 10:"Cactus", 12:"Watermelon"},
+    4: {2:"Babylonia", 4:"Teal Shell", 6:"Clamshell", 8:"Anemone", 10:"Oranda", 12:"Shoal Star", 14:"Incisor"},
+    5: {2:"Unko", 4:"Scaly Spear", 6:"Cerastes", 8:"Scaly Spoon", 10:"Incisor", 12:"Bumpy"}
+  },
+  back: {
+    0: {2:"Ronin", 4:"Hero", 6:"Jaguar", 8:"Risky Beast", 10:"Timber", 12:"Furball"},
+    1: {2:"Snail Shell", 4:"Garish Worm", 6:"Buzz Buzz", 8:"Sandal", 10:"Scarab", 12:"Spiky Wing"},
+    2: {2:"Balloon", 4:"Cupid", 6:"Raven", 8:"Pigeon Post", 10:"Kingfisher", 12:"Tri Feather"},
+    3: {2:"Turnip", 4:"Shiitake", 6:"Bidens", 8:"Watering Can", 10:"Mint", 12:"Pumpkin"},
+    4: {2:"Hermit", 4:"Blue Moon", 6:"Goldfish", 8:"Sponge", 10:"Anemone", 12:"Perch"},
+    5: {2:"Bone Sail", 4:"Tri Spikes", 6:"Green Thorns", 8:"Indian Star", 10:"Red Ear", 12:"Croc"}
+  },
+  tail: {
+    0: {2:"Cottontail", 4:"Rice", 6:"Shiba", 8:"Hare", 10:"Nut Cracker", 12:"Gerbil"},
+    1: {2:"Ant", 4:"Twin Tail", 6:"Fish Snack", 8:"Gravel Ant", 10:"Pupae", 12:"Thorny Caterpillar"},
+    2: {2:"Swallow", 4:"Feather Fan", 6:"The Last One", 8:"Cloud", 10:"Granma's Fan", 12:"Post Fight"},
+    3: {2:"Carrot", 4:"Cattail", 6:"Hatsune", 8:"Yam", 10:"Potato Leaf", 12:"Hot Butt"},
+    4: {2:"Koi", 4:"Nimo", 6:"Tadpole", 8:"Ranchu", 10:"Navaga", 12:"Shrimp"},
+    5: {2:"Wall Gecko", 4:"Iguana", 6:"Tiny Dino", 8:"Snake Jar", 10:"Gila", 12:"Grass Snake"}
+  }
+};
+
+var PART_OFFSETS = {eyes:64, mouth:96, ears:128, horn:160, back:192, tail:224};
+var BODY_PARTS = ['eyes', 'ears', 'mouth', 'horn', 'back', 'tail'];
+var PART_LABELS = {eyes:'Ojos', ears:'Orejas', mouth:'Boca', horn:'Cuerno', back:'Espalda', tail:'Cola'};
+
+function decodeGenes(hex) {
+  try {
+    var n = BigInt(hex);
+    var bits = n.toString(2).padStart(256, '0');
+    var clsBits = parseInt(bits.slice(0, 4), 2);
+    var result = {cls: CLS_MAP[clsBits] || 'Unknown', clsIdx: clsBits};
+    
+    for (var pi = 0; pi < BODY_PARTS.length; pi++) {
+      var part = BODY_PARTS[pi];
+      var offset = PART_OFFSETS[part];
+      result[part] = {
+        d:  parseSlot(bits, offset + 2, part),
+        r1: parseSlot(bits, offset + 12, part),
+        r2: parseSlot(bits, offset + 22, part)
+      };
+    }
+    return result;
+  } catch(e) { return null; }
+}
+
+function parseSlot(bits, start, part) {
+  var clsIdx  = parseInt(bits.slice(start, start + 4), 2);
+  var nameIdx = parseInt(bits.slice(start + 4, start + 10), 2);
+  var name = '?';
+  if (PARTS_DB[part] && PARTS_DB[part][clsIdx] && PARTS_DB[part][clsIdx][nameIdx] !== undefined) {
+    name = PARTS_DB[part][clsIdx][nameIdx];
+  } else {
+    name = '[' + clsIdx + '-' + nameIdx + ']';
+  }
+  return {name: name, cls: clsIdx, idx: nameIdx};
+}
+
+function geneName(slot) { return slot ? slot.name : '?'; }
+
+// Variables globales de estado
+var isSearching = false;
+var totalFound = 0;
+var seenAxies = new Set();
+var ethUsdPrice = 0;
+
+fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT')
+  .then(function(r) { return r.json(); })
+  .then(function(data) { ethUsdPrice = parseFloat(data.price) || 0; })
+  .catch(function(e) { console.log('Error obteniendo precio ETH', e); });
+
+function callProxy(proxy, query, variables) {
+  return fetch(proxy, { 
+    method: 'POST', 
+    headers: {'Content-Type':'application/json'}, 
+    body: JSON.stringify({query:query, variables:variables}) 
+  }).then(function(r) { 
+    if (!r.ok) throw new Error('HTTP '+r.status); 
+    return r.json(); 
+  }); 
+}
+
+function setStatus(elId, msg, type) { 
+  var el = document.getElementById(elId); 
+  el.style.display = 'block'; 
+  el.textContent = msg; 
+  el.className = 'status-box '+type; 
+}
+
+// ==========================================
+// 2. LÓGICA DEL ESCÁNER DE GENES
+// ==========================================
+function buildFilters() {
+  var grid = document.getElementById('filtersGrid');
+  grid.innerHTML = '';
+  for (var i = 0; i < 3; i++) {
+    var card = document.createElement('div');
+    card.className = 'filter-card' + (i === 0 ? ' active' : '');
+    card.id = 'card' + i;
+    
+    var partOpts = BODY_PARTS.map(function(p){ return '<option value="'+p+'">'+PART_LABELS[p]+'</option>'; }).join('');
+    var bodyStyle = i === 0 ? '' : 'opacity:0.35;pointer-events:none';
+    
+    card.innerHTML =
+      '<div class="filter-header">' +
+        '<div class="toggle-box ' + (i === 0 ? 'on' : '') + '" id="tog' + i + '" onclick="toggleFilter(' + i + ')"></div>' +
+        '<span class="filter-label">Filtro ' + (i + 1) + '</span>' +
+      '</div>' +
+      '<div id="body' + i + '" style="' + bodyStyle + '">' +
+        '<div class="part-row"><label>Parte del Cuerpo:</label><select id="part' + i + '" onchange="updateGeneDropdowns(' + i + ')">' + partOpts + '</select></div>' +
+        '<div class="gene-row"><span class="gtag gtag-d">D</span><select id="gd' + i + '"></select></div>' +
+        '<div class="gene-row"><span class="gtag gtag-r1">R1</span><select id="gr1' + i + '"></select></div>' +
+        '<div class="gene-row"><span class="gtag gtag-r2">R2</span><select id="gr2' + i + '"></select></div>' +
+      '</div>';
+    grid.appendChild(card);
+    updateGeneDropdowns(i);
+  }
+}
+
+function updateGeneDropdowns(filterIdx) {
+  var part = document.getElementById('part' + filterIdx).value;
+  var names = [];
+  var classes = Object.keys(PARTS_DB[part]);
+  classes.forEach(function(cIdx) {
+    Object.keys(PARTS_DB[part][cIdx]).forEach(function(id) {
+      var n = PARTS_DB[part][cIdx][id];
+      if (n.indexOf('[') === -1 && names.indexOf(n) === -1) names.push(n);
+    });
+  });
+  names.sort();
+  var optionsHtml = '<option value="">-- Cualquiera --</option>';
+  names.forEach(function(n) { optionsHtml += '<option value="' + n.toLowerCase() + '">' + n + '</option>'; });
+  document.getElementById('gd' + filterIdx).innerHTML = optionsHtml;
+  document.getElementById('gr1' + filterIdx).innerHTML = optionsHtml;
+  document.getElementById('gr2' + filterIdx).innerHTML = optionsHtml;
+}
+
+function toggleFilter(i) {
+  var tog = document.getElementById('tog' + i);
+  var body = document.getElementById('body' + i);
+  var card = document.getElementById('card' + i);
+  var isOn = tog.classList.contains('on');
+  tog.classList.toggle('on', !isOn);
+  body.style.opacity = isOn ? '0.35' : '1';
+  body.style.pointerEvents = isOn ? 'none' : 'auto';
+  card.classList.toggle('active', !isOn);
+}
+
+function getFilters() {
+  var active = [];
+  for (var i = 0; i < 3; i++) {
+    if (!document.getElementById('tog' + i).classList.contains('on')) continue;
+    var f = {
+      part: document.getElementById('part' + i).value,
+      d: document.getElementById('gd' + i).value,
+      r1: document.getElementById('gr1' + i).value,
+      r2: document.getElementById('gr2' + i).value
+    };
+    if (f.d || f.r1 || f.r2) active.push(f);
+  }
+  return active;
+}
+
+async function runSearch(isDeep) {
+  var filters = getFilters();
+  if (!filters.length) { setStatus('status','Activa al menos un filtro con un gen de los menús.','error'); return; }
+  var proxy = document.getElementById('proxyUrl').value.trim();
+  if (!proxy) { setStatus('status','Ingresa la URL del proxy.','error'); return; }
+
+  isSearching = true;
+  totalFound = 0;
+  seenAxies.clear(); 
+  
+  document.getElementById('searchBtn').style.display = 'none';
+  document.getElementById('deepSearchBtn').style.display = 'none';
+  document.getElementById('stopBtn').style.display = 'inline-block';
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('resultsSection').style.display = 'block';
+  document.getElementById('resCount').innerHTML = 'Buscando coincidencias...';
+  
+  var nClass = document.getElementById('nativeClass').value;
+  var nBreed = document.getElementById('nativeBreed').value;
+  var nSort = document.getElementById('nativeSort').value;
+  var userOffset = parseInt(document.getElementById('nativeOffset').value) || 0;
+  
+  var criteriaObj = {};
+  if (nClass) criteriaObj.classes = [nClass];
+  if (nBreed !== '') criteriaObj.breedCount = [parseInt(nBreed)];
+
+  var batchSize = isDeep ? 100 : parseInt(document.getElementById('limitSel').value) || 100;
+  var offset = userOffset;
+  var q = 'query GetAxies($from:Int,$size:Int,$sort:SortBy,$auctionType:AuctionType,$criteria:AxieSearchCriteria){axies(from:$from,size:$size,sort:$sort,auctionType:$auctionType,criteria:$criteria){total results{id name class image genes order{currentPrice}}}}';
+
+  while (isSearching) {
+    if (offset >= 10000) { setStatus('status','Límite máximo de la API alcanzado (10,000). Búsqueda finalizada.','info'); break; }
+    setStatus('status','Escaneando lote desde el #' + offset + ' al #' + (offset+batchSize) + ' con orden: ' + nSort + '...','info');
+    var v = {from:offset, size:batchSize, sort: nSort, auctionType:'Sale', criteria: criteriaObj};
+
+    try {
+      var response = await fetch(proxy, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query:q, variables:v}) });
+      if (!response.ok) throw new Error('Error HTTP ' + response.status);
+      var data = await response.json();
+      if (data.errors) throw new Error(data.errors[0].message);
+      var axies = (data.data && data.data.axies && data.data.axies.results) || [];
+      if (axies.length === 0) { setStatus('status','¡Escaneo completo! No hay más Axies que cumplan esos filtros nativos.','success'); break; }
+
+      var matched = axies.filter(function(axie) {
+        if (!axie.genes || seenAxies.has(axie.id)) return false; 
+        seenAxies.add(axie.id);
+        var genes = decodeGenes(axie.genes);
+        if (!genes) return false;
+        for (var fi = 0; fi < filters.length; fi++) {
+          var f = filters[fi];
+          var g = genes[f.part];
+          if (!g) return false;
+          if (f.d  && geneName(g.d ).toLowerCase() !== f.d) return false;
+          if (f.r1 && geneName(g.r1).toLowerCase() !== f.r1) return false;
+          if (f.r2 && geneName(g.r2).toLowerCase() !== f.r2) return false;
+        }
+        axie._genes = genes;
+        return true;
+      });
+
+      if (matched.length > 0) appendResults(matched, filters);
+      if (!isDeep) { setStatus('status', matched.length ? '¡Éxito! Búsqueda rápida completada.' : 'No se encontraron coincidencias genéticas en este lote rápido.', matched.length ? 'success' : 'error'); break; }
+      
+      offset += batchSize;
+      
+      // === DELAY AJUSTADO A 1000MS (1 SEGUNDO) PARA PREVENIR ERROR 104 ===
+      await new Promise(r => setTimeout(r, 1000)); 
+      
+    } catch (e) {
+      setStatus('status','Error en la conexión: '+e.message,'error'); break;
+    }
+  }
+  isSearching = false; 
+  document.getElementById('searchBtn').style.display = 'inline-block'; 
+  document.getElementById('deepSearchBtn').style.display = 'inline-block'; 
+  document.getElementById('stopBtn').style.display = 'none';
+}
+
+function stopSearch() { 
+  isSearching = false; 
+  setStatus('status','Búsqueda profunda detenida manualmente por el usuario.','info'); 
+}
+
+function appendResults(axies, filters) {
+  var container = document.getElementById('results');
+  totalFound += axies.length;
+  document.getElementById('resCount').innerHTML = 'Axies encontrados en la expedición: <span>'+totalFound+'</span>';
+  
+  for (var i = 0; i < axies.length; i++) {
+    var axie = axies[i];
+    var priceRaw = axie.order && axie.order.currentPrice ? axie.order.currentPrice : null;
+    var ethPrice = priceRaw ? (Number(BigInt(priceRaw))/1e18) : 0;
+    var priceStr = ethPrice > 0 ? ethPrice.toFixed(4) + ' ETH' : 'Sin precio';
+    var usdStr = (ethPrice > 0 && ethUsdPrice > 0) ? '$ ' + (ethPrice * ethUsdPrice).toFixed(2) : '';
+
+    var pillsHtml = '';
+    var imgUrl = 'https://axiecdn.axieinfinity.com/axies/' + axie.id + '/axie/axie-full-transparent.png';
+    
+    for (var fi = 0; fi < filters.length; fi++) {
+      var f = filters[fi];
+      var g = axie._genes[f.part];
+      pillsHtml += '<span class="pill pill-part">'+PART_LABELS[f.part]+'</span>';
+      pillsHtml += '<span class="pill pill-d">D: '+geneName(g.d)+'</span>';
+      pillsHtml += '<span class="pill pill-r1">R1: '+geneName(g.r1)+'</span>';
+      pillsHtml += '<span class="pill pill-r2">R2: '+geneName(g.r2)+'</span>';
+    }
+    
+    var card = document.createElement('div');
+    card.className = 'axie-card';
+    card.innerHTML =
+      '<img class="axie-img" src="'+imgUrl+'" onerror="this.style.opacity=0.3">'+
+      '<div><div class="axie-id">#'+axie.id+' '+(axie.name||'')+'</div><div class="axie-cls">'+axie.class+'</div><div class="pills">'+pillsHtml+'</div></div>'+
+      '<div class="axie-right">' + 
+        '<div class="axie-price">' + priceStr + '</div>' + 
+        (usdStr ? '<div class="usd-price">' + usdStr + '</div>' : '') +
+        '<a class="btn-view" href="https://app.axieinfinity.com/marketplace/axies/'+axie.id+'" target="_blank" rel="noopener noreferrer">VER</a>' +
+      '</div>';
+    container.appendChild(card);
+  }
+}
+
+// ==========================================
+// 3. NUEVA CALCULADORA DE CRÍA
+// ==========================================
+async function runCalculator() {
+  var id1 = document.getElementById('calcId1').value.trim();
+  var id2 = document.getElementById('calcId2').value.trim();
+  var proxy = document.getElementById('proxyUrl').value.trim();
+
+  if (!id1 || !id2) {
+    setStatus('calcStatus', 'Ingresa los IDs de ambos padres.', 'error');
+    return;
+  }
+
+  setStatus('calcStatus', 'Conectando con la base de datos de Axie...', 'info');
+  document.getElementById('calcResults').innerHTML = '';
+
+  var q = 'query GetAxie($axieId:ID!){axie(axieId:$axieId){id class genes}}';
+
+  try {
+    // Pedimos la data de ambos padres en paralelo para mayor velocidad
+    var [res1, res2] = await Promise.all([
+      callProxy(proxy, q, {axieId: id1}),
+      callProxy(proxy, q, {axieId: id2})
+    ]);
+
+    var axie1 = res1.data && res1.data.axie;
+    var axie2 = res2.data && res2.data.axie;
+
+    if (!axie1 || !axie2) throw new Error('Uno o ambos Axies no fueron encontrados.');
+    if (!axie1.genes || !axie2.genes) throw new Error('Información genética oculta o no disponible.');
+
+    var genes1 = decodeGenes(axie1.genes);
+    var genes2 = decodeGenes(axie2.genes);
+
+    if (!genes1 || !genes2) throw new Error('Error decodificando los genes.');
+
+    renderCalculator(genes1, genes2);
+    setStatus('calcStatus', 'Cálculo de probabilidad completado con éxito.', 'success');
+
+  } catch (err) {
+    setStatus('calcStatus', 'Error: ' + err.message, 'error');
+  }
+}
+
+function renderCalculator(g1, g2) {
+  var container = document.getElementById('calcResults');
+  var html = '';
+
+  // Pesos genéticos de cría
+  var w_D = 0.375;
+  var w_R1 = 0.09375;
+  var w_R2 = 0.03125;
+
+  for (var i = 0; i < BODY_PARTS.length; i++) {
+    var part = BODY_PARTS[i];
+    var probs = {};
+
+    var addProb = function(geneObj, weight) {
+      var name = geneObj.name;
+      if (!probs[name]) probs[name] = 0;
+      probs[name] += weight;
+    };
+
+    // Padre 1
+    addProb(g1[part].d, w_D);
+    addProb(g1[part].r1, w_R1);
+    addProb(g1[part].r2, w_R2);
+
+    // Padre 2
+    addProb(g2[part].d, w_D);
+    addProb(g2[part].r1, w_R1);
+    addProb(g2[part].r2, w_R2);
+
+    // Convertir a Array y ordenar de mayor a menor probabilidad
+    var sortedProbs = Object.keys(probs).map(function(k) {
+      return { name: k, pct: (probs[k] * 100) };
+    }).sort(function(a, b) { return b.pct - a.pct; });
+
+    // Renderizar la Tarjeta de la Parte del Cuerpo
+    html += '<div class="calc-card">';
+    html += '<h4>' + PART_LABELS[part] + '</h4>';
+
+    for (var j = 0; j < sortedProbs.length; j++) {
+      var t = sortedProbs[j];
+      var pctText = t.pct.toFixed(2) + '%';
+      
+      html += '<div class="trait-row">';
+      html += '<div class="trait-header"><span class="trait-name">' + t.name + '</span><span class="trait-pct">' + pctText + '</span></div>';
+      html += '<div class="trait-bar-bg"><div class="trait-bar-fill" style="width: ' + pctText + ';"></div></div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+// ==========================================
+// 4. UTILIDADES Y VERIFICADOR
+// ==========================================
+function runVerify() {
+  var axieId = document.getElementById('verifyId').value.trim();
+  if (!axieId) { setStatus('verifyStatus','Ingresa un ID de axie.','error'); return; }
+  var proxy = document.getElementById('proxyUrl').value.trim();
+  setStatus('verifyStatus','Conectando con Ronin Network para ID #'+axieId+'...','info');
+  document.getElementById('verifyResults').innerHTML = '';
+  
+  var q = 'query GetAxie($axieId:ID!){axie(axieId:$axieId){id name class image genes order{currentPrice}}}';
+  callProxy(proxy, q, {axieId: axieId}).then(function(data) {
+    if (data.errors) throw new Error(data.errors[0].message);
+    var axie = data.data && data.data.axie;
+    if (!axie) throw new Error('Axie no encontrado en el Marketplace');
+    var genes = decodeGenes(axie.genes);
+    setStatus('verifyStatus','Axie #'+axie.id+' decodificado con el motor calibrado al 100%:','success');
+    
+    var imgUrl = 'https://axiecdn.axieinfinity.com/axies/' + axie.id + '/axie/axie-full-transparent.png';
+    var html = '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;padding:1rem;background:var(--card);border:1px solid var(--border);border-radius:8px;">';
+    html += '<img src="'+imgUrl+'" style="width:72px;height:72px;border-radius:6px;background:var(--panel);object-fit:contain" onerror="this.style.opacity=0.3">';
+    html += '<div style="flex:1;"><div style="font-family:\'Press Start 2P\',monospace;font-size:0.5rem;color:var(--accent);margin-bottom:0.3rem">#'+axie.id+'</div>';
+    html += '<div style="font-size:0.65rem;color:var(--dim)">'+axie.class+'</div></div></div><div class="verify-grid">';
+    
+    for (var pi = 0; pi < BODY_PARTS.length; pi++) {
+      var part = BODY_PARTS[pi]; var g = genes[part]; if (!g) continue;
+      html += '<div class="verify-card"><h4>'+PART_LABELS[part]+'</h4>';
+      html += '<div class="gene-line"><span class="gtag gtag-d">D</span><span class="pill pill-d">'+g.d.name+'</span><span class="raw-code">['+g.d.cls+'-'+g.d.idx+']</span></div>';
+      html += '<div class="gene-line"><span class="gtag gtag-r1">R1</span><span class="pill pill-r1">'+g.r1.name+'</span><span class="raw-code">['+g.r1.cls+'-'+g.r1.idx+']</span></div>';
+      html += '<div class="gene-line"><span class="gtag gtag-r2">R2</span><span class="pill pill-r2">'+g.r2.name+'</span><span class="raw-code">['+g.r2.cls+'-'+g.r2.idx+']</span></div></div>';
+    }
+    html += '</div>';
+    document.getElementById('verifyResults').innerHTML = html;
+  }).catch(function(e) { setStatus('verifyStatus','Error: '+e.message,'error'); });
+}
+
+function clearAll() { 
+  document.getElementById('results').innerHTML=''; 
+  document.getElementById('resultsSection').style.display='none'; 
+  document.getElementById('status').style.display='none'; 
+}
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(function(el,i){ el.classList.toggle('active', ['search','calc','verify'][i]===t); });
+  document.querySelectorAll('.tab-panel').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('tab-'+t).classList.add('active');
+}
+
+// Inicializador
+buildFilters();
+</script>
+</body>
+</html>
