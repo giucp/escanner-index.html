@@ -111,12 +111,9 @@ select:focus, input:focus { border-color: var(--accent); }
     <div class="tab" onclick="switchTab('verify')">VERIFICADOR</div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- TAB: BÚSQUEDA (EL ESCÁNER)                 -->
-  <!-- ========================================== -->
   <div class="tab-panel active" id="tab-search">
     <div class="note">
-      Los menús han sido rediseñados. Utiliza "Búsqueda Profunda" para escanear en lotes. Delay ajustado a 1000ms para evitar bloqueos del servidor.
+      Conectado al Puente VIP privado de Cloudflare. Sistema Anti-Bloqueos activado.
     </div>
     
     <div class="section-title">Filtros Nativos (Saltar Floor Price)</div>
@@ -159,12 +156,6 @@ select:focus, input:focus { border-color: var(--accent); }
         <input type="number" id="nativeOffset" value="0" min="0" max="9900" step="100" placeholder="Ej: 3000">
       </div>
     </div>
-
-    <div class="section-title">Proxy Worker</div>
-    <div class="row">
-      <label>URL:</label>
-      <input type="text" id="proxyUrl" value="https://axie-proxy.loveandpainsports.workers.dev/" spellcheck="false">
-    </div>
     
     <div class="section-title">Filtros de genes ocultos</div>
     <div class="filters-grid" id="filtersGrid"></div>
@@ -195,9 +186,6 @@ select:focus, input:focus { border-color: var(--accent); }
     </div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- TAB: CALCULADORA DE CRÍA (NUEVA)           -->
-  <!-- ========================================== -->
   <div class="tab-panel" id="tab-calc">
     <div class="note">
       Ingresa el ID de los dos padres. El algoritmo calculará las probabilidades matemáticas exactas de que la cría herede cada gen.
@@ -222,9 +210,6 @@ select:focus, input:focus { border-color: var(--accent); }
     <div class="calc-grid" id="calcResults"></div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- TAB: VERIFICADOR MANUAL                    -->
-  <!-- ========================================== -->
   <div class="tab-panel" id="tab-verify">
     <div class="note">
       Ingresa el ID de cualquier Axie para auditar sus posiciones de bits crudas.
@@ -349,8 +334,13 @@ fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT')
   .then(function(data) { ethUsdPrice = parseFloat(data.price) || 0; })
   .catch(function(e) { console.log('Error obteniendo precio ETH', e); });
 
-function callProxy(proxy, query, variables) {
-  return fetch(proxy, { 
+// ==========================================
+// NUEVO PUENTE VIP (CLOUDFLARE)
+// ==========================================
+const MI_URL_WORKER = 'https://dawn-moon-94a0.loveandpainsports.workers.dev/';
+
+function callProxy(query, variables) {
+  return fetch(MI_URL_WORKER, { 
     method: 'POST', 
     headers: {'Content-Type':'application/json'}, 
     body: JSON.stringify({query:query, variables:variables}) 
@@ -444,8 +434,6 @@ function getFilters() {
 async function runSearch(isDeep) {
   var filters = getFilters();
   if (!filters.length) { setStatus('status','Activa al menos un filtro con un gen de los menús.','error'); return; }
-  var proxy = document.getElementById('proxyUrl').value.trim();
-  if (!proxy) { setStatus('status','Ingresa la URL del proxy.','error'); return; }
 
   isSearching = true;
   totalFound = 0;
@@ -477,7 +465,7 @@ async function runSearch(isDeep) {
     var v = {from:offset, size:batchSize, sort: nSort, auctionType:'Sale', criteria: criteriaObj};
 
     try {
-      var response = await fetch(proxy, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query:q, variables:v}) });
+      var response = await fetch(MI_URL_WORKER, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query:q, variables:v}) });
       if (!response.ok) throw new Error('Error HTTP ' + response.status);
       var data = await response.json();
       if (data.errors) throw new Error(data.errors[0].message);
@@ -506,8 +494,8 @@ async function runSearch(isDeep) {
       
       offset += batchSize;
       
-      // === DELAY AJUSTADO A 1000MS (1 SEGUNDO) PARA PREVENIR ERROR 104 ===
-      await new Promise(r => setTimeout(r, 1000)); 
+      // === DELAY REDUCIDO A 300MS PARA MÁXIMA VELOCIDAD ===
+      await new Promise(r => setTimeout(r, 300)); 
       
     } catch (e) {
       setStatus('status','Error en la conexión: '+e.message,'error'); break;
@@ -568,7 +556,6 @@ function appendResults(axies, filters) {
 async function runCalculator() {
   var id1 = document.getElementById('calcId1').value.trim();
   var id2 = document.getElementById('calcId2').value.trim();
-  var proxy = document.getElementById('proxyUrl').value.trim();
 
   if (!id1 || !id2) {
     setStatus('calcStatus', 'Ingresa los IDs de ambos padres.', 'error');
@@ -581,10 +568,10 @@ async function runCalculator() {
   var q = 'query GetAxie($axieId:ID!){axie(axieId:$axieId){id class genes}}';
 
   try {
-    // Pedimos la data de ambos padres en paralelo para mayor velocidad
+    // Pedimos la data de ambos padres en paralelo para mayor velocidad usando el puente directo
     var [res1, res2] = await Promise.all([
-      callProxy(proxy, q, {axieId: id1}),
-      callProxy(proxy, q, {axieId: id2})
+      callProxy(q, {axieId: id1}),
+      callProxy(q, {axieId: id2})
     ]);
 
     var axie1 = res1.data && res1.data.axie;
@@ -610,7 +597,6 @@ function renderCalculator(g1, g2) {
   var container = document.getElementById('calcResults');
   var html = '';
 
-  // Pesos genéticos de cría
   var w_D = 0.375;
   var w_R1 = 0.09375;
   var w_R2 = 0.03125;
@@ -625,22 +611,18 @@ function renderCalculator(g1, g2) {
       probs[name] += weight;
     };
 
-    // Padre 1
     addProb(g1[part].d, w_D);
     addProb(g1[part].r1, w_R1);
     addProb(g1[part].r2, w_R2);
 
-    // Padre 2
     addProb(g2[part].d, w_D);
     addProb(g2[part].r1, w_R1);
     addProb(g2[part].r2, w_R2);
 
-    // Convertir a Array y ordenar de mayor a menor probabilidad
     var sortedProbs = Object.keys(probs).map(function(k) {
       return { name: k, pct: (probs[k] * 100) };
     }).sort(function(a, b) { return b.pct - a.pct; });
 
-    // Renderizar la Tarjeta de la Parte del Cuerpo
     html += '<div class="calc-card">';
     html += '<h4>' + PART_LABELS[part] + '</h4>';
 
@@ -665,12 +647,12 @@ function renderCalculator(g1, g2) {
 function runVerify() {
   var axieId = document.getElementById('verifyId').value.trim();
   if (!axieId) { setStatus('verifyStatus','Ingresa un ID de axie.','error'); return; }
-  var proxy = document.getElementById('proxyUrl').value.trim();
+  
   setStatus('verifyStatus','Conectando con Ronin Network para ID #'+axieId+'...','info');
   document.getElementById('verifyResults').innerHTML = '';
   
   var q = 'query GetAxie($axieId:ID!){axie(axieId:$axieId){id name class image genes order{currentPrice}}}';
-  callProxy(proxy, q, {axieId: axieId}).then(function(data) {
+  callProxy(q, {axieId: axieId}).then(function(data) {
     if (data.errors) throw new Error(data.errors[0].message);
     var axie = data.data && data.data.axie;
     if (!axie) throw new Error('Axie no encontrado en el Marketplace');
